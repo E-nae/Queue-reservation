@@ -56,14 +56,12 @@ Bash
 
 3. 백엔드 실행
 [Bash]
-cd backend
 npm install
 npm run dev # 또는 npx ts-node index.ts
 서버는 http://localhost:4000에서 실행됩니다.
 
 4. 프론트엔드 실행
 [Bash]
-cd frontend
 npm install
 npm run dev
 브라우저에서 http://localhost:3000으로 접속하여 테스트합니다.
