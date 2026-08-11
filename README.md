@@ -30,7 +30,7 @@
 Bash
 <pre>
 .
-├── frontend/ (추정)
+├── frontend/
 │   ├── components/NumberTicker.tsx  # 숫자 롤링 애니메이션
 │   ├── hooks/useTicketQueue.ts      # 대기열 로직 (진입, 폴링, 결제) 훅
 │   └── page.tsx                     # 메인 예약 페이지 UI
