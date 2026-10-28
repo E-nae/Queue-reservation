@@ -23,6 +23,8 @@ export function useTicketQueue(userId: string) {
   const [myRank, setMyRank] = useState<number | null>(null);
   const [initialRank, setInitialRank] = useState<number>(0); // 진행률 계산용
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   const fail = (message: string) => {
     setErrorMessage(message);
@@ -95,6 +97,8 @@ export function useTicketQueue(userId: string) {
 
   // 3. 예매 요청 (POST /purchase) - Lua Script 실행 트리거
   const buyTicket = async () => {
+    setPurchaseError(null);
+    setIsPurchasing(true);
     try {
       const res = await fetch(`${API_PATH}/purchase`, {
         method: 'POST',
@@ -102,17 +106,19 @@ export function useTicketQueue(userId: string) {
         body: JSON.stringify({ userId, quantity: 1 }),
       });
       if (!res.ok) {
-        alert(await readErrorMessage(res)); // 매진, 권한 없음, 서버 오류
+        setPurchaseError(await readErrorMessage(res)); // 매진, 권한 없음, 서버 오류
         return;
       }
       const result = await res.json();
       if (result.success) setStatus('success');
-      else alert(result.message);
+      else setPurchaseError(result.message || DEFAULT_ERROR);
     } catch (e) {
       console.error('Purchase error', e);
-      alert('통신 오류 발생');
+      setPurchaseError('결제 요청을 보내지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.');
+    } finally {
+      setIsPurchasing(false);
     }
   };
 
-  return { status, myRank, initialRank, errorMessage, joinQueue, buyTicket };
+  return { status, myRank, initialRank, errorMessage, purchaseError, isPurchasing, joinQueue, buyTicket };
 }

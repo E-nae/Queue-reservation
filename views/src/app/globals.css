@@ -1,26 +1,239 @@
 @import "tailwindcss";
 
+/*
+  매표소 팔레트
+  wall: 매표소 앞 콘크리트 벽 / ink: 티켓 인쇄 잉크 / paper: 티켓 용지
+  stub: 티켓 절취선 너머 띠 / cobalt: 누를 수 있는 것 / steel: 셔터
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --wall: #e4e7eb;
+  --wall-deep: #d5d9df;
+  --ink: #1d2540;
+  --ink-soft: #565e75;
+  --paper: #ffffff;
+  --stub: #f2b33d;
+  --cobalt: #2b45c8;
+  --cobalt-deep: #1f35a3;
+  --steel: #aeb5bd;
+  --steel-dark: #7d858e;
+  --lamp: #ffd77a;
+  --alert: #c2362b;
+
+  color-scheme: light;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-wall: var(--wall);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-paper: var(--paper);
+  --color-stub: var(--stub);
+  --color-cobalt: var(--cobalt);
+  --color-alert: var(--alert);
+  --font-sans: var(--font-plex), system-ui, sans-serif;
+  --font-display: var(--font-hansans), var(--font-plex), sans-serif;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--wall);
+  color: var(--ink);
+  font-family: var(--font-plex), system-ui, sans-serif;
+  word-break: keep-all;
+}
+
+:focus-visible {
+  outline: 3px solid var(--cobalt);
+  outline-offset: 3px;
+}
+
+/* 직접 만든 클래스는 components 레이어에 둬서 Tailwind 유틸리티로 덮어쓸 수 있게 한다 */
+@layer components {
+/* ---------- 버튼 ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 3.5rem;
+  padding: 0 1.25rem;
+  border-radius: 6px;
+  background: var(--cobalt);
+  color: #fff;
+  font-weight: 600;
+  font-size: 1.0625rem;
+  box-shadow: 0 2px 0 var(--cobalt-deep);
+  transition: background-color 120ms, transform 80ms, box-shadow 80ms;
+}
+.btn:hover { background: var(--cobalt-deep); }
+.btn:active { transform: translateY(2px); box-shadow: 0 0 0 var(--cobalt-deep); }
+.btn:disabled { opacity: 0.6; cursor: progress; }
+
+/* ---------- 티켓 ----------
+   본권과 절취선, 그 옆(모바일에선 아래)의 띠.
+   절취선 양 끝은 벽 색 원으로 파낸 것처럼 보이게 한다. */
+.ticket {
+  --notch: 14px;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  background: var(--paper);
+  border-radius: 10px;
+  box-shadow: 0 1px 0 rgba(29, 37, 64, 0.08), 0 18px 40px -24px rgba(29, 37, 64, 0.45);
+}
+.ticket-stub {
+  position: relative;
+  background: var(--stub);
+  border-radius: 0 0 10px 10px;
+  border-top: 2px dashed rgba(29, 37, 64, 0.35);
+}
+.ticket-stub::before,
+.ticket-stub::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--notch) * -1 - 1px);
+  width: calc(var(--notch) * 2);
+  height: calc(var(--notch) * 2);
+  border-radius: 50%;
+  background: var(--wall);
+}
+.ticket-stub::before { left: calc(var(--notch) * -1); }
+.ticket-stub::after { right: calc(var(--notch) * -1); }
+
+@media (min-width: 720px) {
+  .ticket { grid-template-columns: 1fr 8.5rem; }
+  .ticket-stub {
+    border-radius: 0 10px 10px 0;
+    border-top: 0;
+    border-left: 2px dashed rgba(29, 37, 64, 0.35);
+  }
+  .ticket-stub::before,
+  .ticket-stub::after { left: calc(var(--notch) * -1 - 1px); right: auto; }
+  .ticket-stub::before { top: calc(var(--notch) * -1); }
+  .ticket-stub::after { top: auto; bottom: calc(var(--notch) * -1); }
+}
+
+/* ---------- 번호표 ----------
+   은행 번호표처럼 위아래가 뜯긴 종이 */
+.slip-wrap { filter: drop-shadow(0 14px 18px rgba(29, 37, 64, 0.18)); }
+.slip {
+  --tear: 7px;
+  background: var(--paper);
+  -webkit-mask:
+    linear-gradient(#000 0 0) center / 100% calc(100% - var(--tear) * 2) no-repeat,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(var(--tear) * 2) var(--tear) repeat-x,
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(var(--tear) * 2) var(--tear) repeat-x;
+  mask:
+    linear-gradient(#000 0 0) center / 100% calc(100% - var(--tear) * 2) no-repeat,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(var(--tear) * 2) var(--tear) repeat-x,
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(var(--tear) * 2) var(--tear) repeat-x;
+}
+
+/* ---------- 예매 완료 도장 ---------- */
+.stamp {
+  display: grid;
+  place-items: center;
+  width: 7.5rem;
+  height: 7.5rem;
+  border: 3px solid var(--cobalt);
+  border-radius: 50%;
+  color: var(--cobalt);
+  font-family: var(--font-hansans), sans-serif;
+  font-size: 1.5rem;
+  line-height: 1.1;
+  text-align: center;
+  box-shadow: inset 0 0 0 4px var(--paper), inset 0 0 0 6px var(--cobalt);
+  mix-blend-mode: multiply;
+}
+
+/* ---------- 매표소 (서버 깨우는 화면) ---------- */
+.booth {
+  width: min(100%, 22rem);
+}
+.booth-sign {
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-hansans), sans-serif;
+  font-size: 1.75rem;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  text-align: center;
+  padding: 0.6rem 0 0.5rem;
+  border-radius: 4px 4px 0 0;
+}
+.booth-frame {
+  padding: 0 12px 12px;
+  background: var(--wall-deep);
+  border-radius: 0 0 4px 4px;
+}
+.booth-window {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 50% 0%, #fff3cf 0%, var(--lamp) 55%, #e9b44c 100%);
+}
+/* 셔터 안쪽: 창구 카운터 */
+.booth-counter {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 16%;
+  background: #8a5a2b;
+  border-top: 6px solid #a8743f;
+}
+.booth-counter-hole {
+  position: absolute;
+  left: 50%;
+  bottom: 16%;
+  transform: translateX(-50%);
+  width: 34%;
+  height: 30%;
+  border: 3px solid rgba(29, 37, 64, 0.25);
+  border-bottom: 0;
+  border-radius: 999px 999px 0 0;
+}
+/* 창구 카운터 위에 세워둔 안내 카드 */
+.booth-notice {
+  position: absolute;
+  left: 9%;
+  bottom: 15%;
+  padding: 0.35rem 0.6rem 0.3rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-hansans), sans-serif;
+  font-size: 0.95rem;
+  line-height: 1;
+  border-radius: 2px;
+  box-shadow: 0 2px 0 rgba(29, 37, 64, 0.25);
+  transform: rotate(-4deg);
+  transform-origin: bottom left;
+}
+.shutter {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      var(--steel) 0 13px,
+      #c3c9cf 13px 15px,
+      var(--steel-dark) 15px 18px
+    );
+  will-change: transform;
+}
+.shutter-bar {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 14px;
+  background: #5f666f;
+}
+.shutter-handle {
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  transform: translateX(-50%);
+  width: 34px;
+  height: 8px;
+  border: 2px solid #3d434a;
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+}
 }
