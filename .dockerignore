@@ -1,0 +1,9 @@
+node_modules
+dist
+views
+.git
+.claude
+.env
+.env.*
+*.log
+.DS_Store

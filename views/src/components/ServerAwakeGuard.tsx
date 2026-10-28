@@ -7,14 +7,14 @@ const API_URL = process.env.NEXT_PUBLIC_API_PATH || 'http://localhost:4000';
 
 // 서버가 이 시간 안에 응답하면 매표소 화면 없이 바로 보여준다 (깜빡임 방지)
 const SHOW_BOOTH_AFTER_MS = 700;
-// 무료 서버가 깨어나는 데 걸리는 보통 시간
-const TYPICAL_WAKE_SEC = 30;
+// 서버 연결이 늦어질 때(배포·재시작 중) 보통 기다리는 시간
+const TYPICAL_WAKE_SEC = 5;
 
 type Phase = 'checking' | 'waking' | 'opening' | 'open';
 
 /**
- * 무료 서버는 한동안 요청이 없으면 잠든다.
- * 깨어나는 동안 매표소 셔터가 조금씩 올라가고, 서버가 응답하면 끝까지 올라간 뒤 예매 화면이 나온다.
+ * 서버는 항상 켜져 있지만, 배포나 재시작 중에는 잠깐 응답이 늦을 수 있다.
+ * 연결을 기다리는 동안 매표소 셔터가 조금씩 올라가고, 서버가 응답하면 끝까지 올라간 뒤 예매 화면이 나온다.
  */
 export default function ServerAwakeGuard({ children }: { children: React.ReactNode }) {
   const [phase, setPhase] = useState<Phase>('checking');
@@ -108,8 +108,7 @@ export default function ServerAwakeGuard({ children }: { children: React.ReactNo
           {phase === 'opening' ? '문 열었어요' : '매표소 문을 여는 중이에요'}
         </h1>
         <p className="mt-3 leading-relaxed text-ink-soft">
-          이 데모는 무료 서버에서 돌아가서, 한동안 손님이 없으면 서버가 잠들어요. 다시 깨어나는 데 보통 30~50초
-          걸리고, 그 뒤로는 빠르게 움직여요.
+          서버에 연결하고 있어요. 보통 몇 초면 끝나요.
         </p>
 
         <p className="mt-6 flex items-baseline justify-between border-t border-ink/15 pt-3 text-sm">
@@ -117,10 +116,10 @@ export default function ServerAwakeGuard({ children }: { children: React.ReactNo
           <span className="font-semibold tabular-nums">{elapsed}초</span>
         </p>
 
-        {elapsed >= 70 && phase === 'waking' && (
+        {elapsed >= 20 && phase === 'waking' && (
           <p className="mt-4 text-sm leading-relaxed text-ink-soft">
             평소보다 오래 걸리고 있어요. 계속 깨우는 중이니 이 화면을 그대로 두세요.{' '}
-            {elapsed >= 120 && (
+            {elapsed >= 40 && (
               <button
                 onClick={() => window.location.reload()}
                 className="font-semibold text-cobalt underline underline-offset-4"
