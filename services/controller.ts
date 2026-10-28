@@ -7,8 +7,8 @@ export const TicketController = {
     const { userId } = req.body;
     console.log('userId: ');
     console.log(userId);
-    await QueueService.enterQueue(userId);
-    res.json({ message: '대기열에 등록되었습니다.' });
+    const rank = await QueueService.enterQueue(userId);
+    res.json({ message: '대기열에 등록되었습니다.', rank });
   },
 
   // GET /queue/status

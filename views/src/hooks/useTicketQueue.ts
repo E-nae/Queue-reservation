@@ -46,8 +46,14 @@ export function useTicketQueue(userId: string) {
       if (!res.ok) {
         console.error('Join failed:', res.status);
         fail(await readErrorMessage(res));
+        return;
       }
-      // 성공하면 아래 폴링이 상태 확인을 이어감
+      // 줄 선 순간의 순번을 바로 보여준다 (이후 상태 확인은 아래 폴링이 이어감)
+      const data = await res.json().catch(() => null);
+      if (typeof data?.rank === 'number') {
+        setInitialRank(data.rank);
+        setMyRank(data.rank);
+      }
     } catch (error) {
       console.error('Join error', error);
       fail(DEFAULT_ERROR);

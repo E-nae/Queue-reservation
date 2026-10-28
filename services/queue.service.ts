@@ -10,12 +10,16 @@ export const QueueService = {
   /**
    * 1단계: 대기열 진입 (Waiting Room)
    * Sorted Set을 사용해 타임스탬프 순으로 정렬
+   * 줄 선 직후의 순번을 함께 돌려준다. 사람이 적으면 1초 안에 입장 처리돼서
+   * 폴링만으로는 순번을 한 번도 못 받을 수 있기 때문.
    */
   async enterQueue(userId: string) {
     const timestamp = Date.now();
     // ZADD key score member: 점수(시간)를 기준으로 정렬되어 저장됨
-    await redis.zadd(QUEUE_KEY, timestamp, userId);
-    return true;
+    // MULTI로 묶어서 등록과 순번 조회 사이에 스케줄러가 끼어들지 않게 한다
+    const results = await redis.multi().zadd(QUEUE_KEY, timestamp, userId).zrank(QUEUE_KEY, userId).exec();
+    const rank = results?.[1]?.[1];
+    return typeof rank === 'number' ? rank + 1 : null;
   },
 
   /**
