@@ -40,6 +40,15 @@ app.post('/queue/join', TicketController.join);
 app.get('/queue/status', TicketController.status);
 app.post('/purchase', TicketController.buy);
 
+// 에러 처리: HTML 대신 JSON으로 응답해서 프론트가 읽을 수 있게 함
+app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error(`[API Error] ${req.method} ${req.path}`, err);
+    res.status(503).json({
+        success: false,
+        message: '서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해주세요.',
+    });
+});
+
 
 /*** 스케쥴러 */
 setInterval(async () => {

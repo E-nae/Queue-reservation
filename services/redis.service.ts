@@ -2,12 +2,26 @@ import Redis from 'ioredis';
 
 const redisUrl = process.env.REDIS_URL;
 // Redis 클라이언트 생성 (환경변수 사용 권장)
-const redis = redisUrl 
-  ? new Redis(redisUrl) // Upstash (Production)
-  : new Redis({         // Local (Development)
+// 연결이 안 될 때 요청이 오래 붙잡혀 있지 않도록 재시도 횟수를 줄임
+const redisOptions = { maxRetriesPerRequest: 3 };
+
+const redis = redisUrl
+  ? new Redis(redisUrl, redisOptions) // Upstash (Production)
+  : new Redis({                       // Local (Development)
       host: 'localhost',
       port: 6379,
+      ...redisOptions,
     });
+
+console.log(`[Redis] ${redisUrl ? 'REDIS_URL 사용' : 'REDIS_URL 없음 → localhost:6379 사용'}`);
+if (redisUrl?.startsWith('redis://') && redisUrl.includes('upstash')) {
+  console.warn('[Redis] Upstash는 TLS가 필요합니다. REDIS_URL을 rediss:// 로 시작하게 바꾸세요.');
+}
+
+redis.on('connect', () => console.log('[Redis] 연결 성공'));
+redis.on('error', (err: NodeJS.ErrnoException) => {
+  console.error('[Redis] 연결 오류:', err.code || err.message || err.name);
+});
 
 /**
  * Lua Script: 결제 승인 (Atomic)

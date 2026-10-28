@@ -1,6 +1,6 @@
 import redis from './redis.service';
 
-const EVENT_ID = 'concert_2025';
+const EVENT_ID = 'concert_2026';
 const QUEUE_KEY = `queue:${EVENT_ID}`;       // 대기열 (Sorted Set)
 const ACTIVE_KEY = `active:${EVENT_ID}`;     // 입장 가능 유저 (Set)
 const STOCK_KEY = `stock:${EVENT_ID}`;       // 재고 (String)

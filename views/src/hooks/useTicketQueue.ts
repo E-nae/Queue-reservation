@@ -1,25 +1,54 @@
 import { useState, useEffect } from 'react';
 
-type QueueStatus = 'idle' | 'waiting' | 'entered' | 'sold_out' | 'success';
+type QueueStatus = 'idle' | 'waiting' | 'entered' | 'sold_out' | 'success' | 'error';
+
+const API_PATH = process.env.NEXT_PUBLIC_API_PATH;
+const DEFAULT_ERROR = '서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.';
+// 순번 조회가 이 횟수만큼 연속으로 실패하면 에러 화면으로 전환
+const MAX_POLL_FAILURES = 3;
+
+// 실패 응답에서 서버가 보낸 메시지를 꺼냄 (JSON이 아니면 기본 문구)
+async function readErrorMessage(res: Response) {
+  try {
+    const data = await res.json();
+    if (data?.message) return String(data.message);
+  } catch {
+    // HTML 에러 페이지 등
+  }
+  return DEFAULT_ERROR;
+}
 
 export function useTicketQueue(userId: string) {
   const [status, setStatus] = useState<QueueStatus>('idle');
   const [myRank, setMyRank] = useState<number | null>(null);
   const [initialRank, setInitialRank] = useState<number>(0); // 진행률 계산용
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const fail = (message: string) => {
+    setErrorMessage(message);
+    setStatus('error');
+  };
 
   // 1. 대기열 진입 (POST /queue/join)
   const joinQueue = async () => {
+    setErrorMessage(null);
+    setMyRank(null);
+    setInitialRank(0);
+    setStatus('waiting');
     try {
-      setStatus('waiting');
-      await fetch(`${process.env.NEXT_PUBLIC_API_PATH}/queue/join`, {
+      const res = await fetch(`${API_PATH}/queue/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId }),
       });
-      // 진입 직후 상태 확인 시작
+      if (!res.ok) {
+        console.error('Join failed:', res.status);
+        fail(await readErrorMessage(res));
+      }
+      // 성공하면 아래 폴링이 상태 확인을 이어감
     } catch (error) {
-      console.error(error);
-      setStatus('idle');
+      console.error('Join error', error);
+      fail(DEFAULT_ERROR);
     }
   };
 
@@ -27,47 +56,63 @@ export function useTicketQueue(userId: string) {
   useEffect(() => {
     if (status !== 'waiting') return;
 
+    let failures = 0;
+    const onFailure = (message: string) => {
+      failures += 1;
+      if (failures >= MAX_POLL_FAILURES) {
+        clearInterval(intervalId);
+        fail(message);
+      }
+    };
+
     const intervalId = setInterval(async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}/queue/status?userId=${userId}`);
+        const res = await fetch(`${API_PATH}/queue/status?userId=${encodeURIComponent(userId)}`);
+        if (!res.ok) {
+          console.error('Polling failed:', res.status);
+          onFailure(await readErrorMessage(res));
+          return;
+        }
         const data = await res.json();
+        failures = 0;
 
         if (data.status === 'entered') {
           setStatus('entered'); // 입장 성공!
           clearInterval(intervalId);
         } else if (data.rank) {
-          setMyRank((prev) => {
-             // 처음 순번을 저장해둠 (진행률 바 계산 위해)
-             if (!initialRank) setInitialRank(data.rank); 
-             return data.rank;
-          });
+          // 처음 순번을 저장해둠 (진행률 바 계산 위해)
+          setInitialRank((prev) => prev || data.rank);
+          setMyRank(data.rank);
         }
       } catch (e) {
-        console.error("Polling error", e);
+        console.error('Polling error', e);
+        onFailure(DEFAULT_ERROR);
       }
     }, 2000); // 2초마다 확인 (서버 부하 고려)
 
     return () => clearInterval(intervalId);
-  }, [status, userId, initialRank]);
+  }, [status, userId]);
 
   // 3. 예매 요청 (POST /purchase) - Lua Script 실행 트리거
   const buyTicket = async () => {
-    console.log('REAL URL:', `${process.env.NEXT_PUBLIC_API_PATH}/purchase`);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_PATH}/purchase`, {
+      const res = await fetch(`${API_PATH}/purchase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, quantity: 1 }),
       });
+      if (!res.ok) {
+        alert(await readErrorMessage(res)); // 매진, 권한 없음, 서버 오류
+        return;
+      }
       const result = await res.json();
-      
       if (result.success) setStatus('success');
-      else alert(result.message); // 매진 혹은 권한 없음
-      
+      else alert(result.message);
     } catch (e) {
+      console.error('Purchase error', e);
       alert('통신 오류 발생');
     }
   };
 
-  return { status, myRank, initialRank, joinQueue, buyTicket };
+  return { status, myRank, initialRank, errorMessage, joinQueue, buyTicket };
 }

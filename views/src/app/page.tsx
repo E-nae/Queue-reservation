@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const USER_ID = 'user_' + Math.floor(Math.random() * 10000);
 
 export default function BookingPage() {
-  const { status, myRank, initialRank, joinQueue, buyTicket } = useTicketQueue(USER_ID);
+  const { status, myRank, initialRank, errorMessage, joinQueue, buyTicket } = useTicketQueue(USER_ID);
 
   // 진행률 계산 (100% - (현재등수 / 초기등수 * 100))
   const progress = myRank && initialRank 
@@ -98,6 +98,25 @@ export default function BookingPage() {
                         className="w-full py-4 bg-black text-white font-bold text-lg rounded-xl hover:bg-neutral-800 transition-transform active:scale-95"
                     >
                         결제하기 (110,000원)
+                    </button>
+                </motion.div>
+            )}
+
+            {/* 상태: 서버 오류 */}
+            {status === 'error' && (
+                <motion.div
+                    key="error"
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+                    className="bg-neutral-900 border border-red-500/30 p-8 rounded-2xl shadow-2xl text-center space-y-6"
+                >
+                    <div className="text-5xl">⚠️</div>
+                    <h2 className="text-2xl font-bold text-white">대기열에 접속하지 못했어요</h2>
+                    <p className="text-neutral-400">{errorMessage}</p>
+                    <button
+                        onClick={joinQueue}
+                        className="w-full py-4 bg-white text-black font-bold text-lg rounded-xl hover:bg-neutral-200 transition-colors"
+                    >
+                        다시 시도하기
                     </button>
                 </motion.div>
             )}
