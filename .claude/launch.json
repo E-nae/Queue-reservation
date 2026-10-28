@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "mock-api",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/private/tmp/claude-501/-Users-enae--claude-spares-spare-tUlib4/dfaabf30-dfda-4a6a-8bed-0d336ba6ad54/scratchpad/mock-api.mjs"],
+      "port": 4100
+    },
+    {
+      "name": "web-mock",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd views && NEXT_PUBLIC_API_PATH=http://localhost:4100 npx next dev -p 3100"],
+      "port": 3100
+    }
+  ]
+}
